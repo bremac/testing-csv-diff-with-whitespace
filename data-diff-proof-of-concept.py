@@ -105,8 +105,11 @@ def strip_ansi_escapes(s: str) -> str:
     return ANSI_ESCAPE_RE.sub('', s)
 
 
-def format_diff(a: Table, b: Table) -> str:
-    diff = daff.Coopy.diff(a, b)
+def format_diff(a: Table, b: Table, index: List[str] = []) -> str:
+    flags = daff.CompareFlags()
+    for name in index:
+        flags.addPrimaryKey(name)
+    diff = daff.Coopy.diff(a, b, flags=flags)
     output = daff.TerminalDiffRender().render(diff)
     return output
 
@@ -114,7 +117,7 @@ def format_diff(a: Table, b: Table) -> str:
 def dataframe_to_table(df: pd.DataFrame) -> Table:
     rows = [df.columns.tolist()]
     for idx, row in df.iterrows():
-        rows.append(row)
+        rows.append(row.tolist())
     return rows
 
 
@@ -161,7 +164,8 @@ if __name__ == '__main__':
 
     # Print a diff between dataframes.
     output = format_diff(encode_table(dataframe_to_table(a)),
-                         encode_table(dataframe_to_table(b)))
+                         encode_table(dataframe_to_table(b)),
+                         index=["timestamp"])
     # The terminal format setting is ignored by the renderer, so we need to
     # strip escape sequences by hand. :-(
     if not os.isatty(sys.stdout.fileno()):
@@ -169,7 +173,8 @@ if __name__ == '__main__':
     print(output)
 
     output = format_diff(encode_table(dataframe_to_table(b)),
-                         encode_table(dataframe_to_table(c)))
+                         encode_table(dataframe_to_table(c)),
+                         index=["timestamp"])
     if not os.isatty(sys.stdout.fileno()):
         output = strip_ansi_escapes(output)
     print(output)
